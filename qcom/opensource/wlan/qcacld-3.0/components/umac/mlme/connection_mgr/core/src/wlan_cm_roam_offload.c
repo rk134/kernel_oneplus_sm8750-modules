@@ -5191,14 +5191,6 @@ cm_roam_state_change(struct wlan_objmgr_pdev *pdev,
 		goto end;
 	}
 
-	if (requested_state == WLAN_ROAM_RSO_ENABLED &&
-	    (policy_mgr_is_chan_switch_in_progress(psoc) ||
-	     policy_mgr_is_conc_sap_ready_for_mcc_to_scc_trans(psoc))) {
-		mlme_debug("ROAM: roam state(%d) change requested when a concurrent SAP is in MCC or CSA is in progress",
-			   requested_state);
-		goto end;
-	}
-
 	status = cm_handle_mlo_rso_state_change(pdev, &vdev_id, requested_state,
 						reason, &is_rso_skip);
 	if (is_rso_skip)
@@ -6829,6 +6821,8 @@ cm_roam_cancel_event(uint8_t vdev_id, enum wlan_roam_failure_reason_code reason,
 #define ROAM_STATUS_FAILURE 1
 #define ROAM_STATUS_NO_ROAM 2
 
+#define ROAM_FAIL_REASON_FW_INTERNAL 0
+
 void cm_roam_result_info_event(struct wlan_objmgr_psoc *psoc,
 			       struct wmi_roam_trigger_info *trigger,
 			       struct wmi_roam_result *res,
@@ -6861,6 +6855,9 @@ void cm_roam_result_info_event(struct wlan_objmgr_psoc *psoc,
 			 WMI_ROAM_SCAN_CANCEL_OTHER_PRIORITY_ROAM_SCAN) {
 			roam_cancel_reason =
 				ROAM_FAIL_REASON_OTHER_PRIORITY_ROAM_SCAN;
+		} else if (res->roam_abort_reason ==
+			   WMI_ROAM_ABORT_UNSPECIFIED) {
+			roam_cancel_reason = ROAM_FAIL_REASON_FW_INTERNAL;
 		} else {
 			mlme_debug("vdev:%d Unsupported abort reason:%d",
 				   vdev_id, res->roam_abort_reason);
